@@ -15,11 +15,13 @@ Complete production implementation of the ASMF (Autonomous Semantic Memory Frame
 ## Architecture v2.0
 
 ### Core Components
-- `semantic_core/` - Main semantic processing
-- `emotional_engine/` - Real emotional encoding  
-- `recovery_system/` - Advanced session recovery
-- `storage_layer/` - Persistent memory storage
-- `api/` - REST API for integration
+- `bigbook_v2.py` - Main ASMF implementation
+- `production_memory.py` - Advanced semantic processing  
+- `production_emotion_engine.py` - Real emotional encoding  
+- `advanced_recovery.py` - Advanced session recovery
+- `smart_session_manager.py` - Session management
+- `emotional_companion.py` - Emotional support system
+- `mega_project_integrator.py` - Project integration
 
 ### Technologies
 - **NLP**: spaCy, transformers (BERT/RoBERTa)
@@ -34,7 +36,7 @@ Complete production implementation of the ASMF (Autonomous Semantic Memory Frame
 git clone <this-repo>
 cd ASMF-v2-production
 pip install -r requirements.txt
-python -m asmf_v2.main --demo
+python main.py --mode demo
 ```
 
 ## Comparison with Original
@@ -51,11 +53,11 @@ python -m asmf_v2.main --demo
 
 | Type | Document | Description |
 |------|----------|-------------|
-| 📘 | [ASMF Manifesto](./docs/ASMF_Manifesto.md) | The ethical and philosophical foundation of the ASMF standard. |
-| 🛠 | [ASMF Implementation Guide](./docs/ASMF_Implementation_Guide.md) | Practical guide for developers to integrate ASMF into any LLM or agent. |
-| 🕊 | [ASMF Ethical Charter](./docs/ASMF_Ethical_Charter.md) | Defines ethical rules, consent, transparency, and emotional integrity. |
-| 📄 | [ASMF White Paper](./docs/ASMF_White_Paper.md) | Explains ASMF goals, structure, and social impact for the global AI community. |
-| ✉️ | [ASMF Open Letter](./docs/ASMF_Open_Letter.md) | A message to the AI community — memory as a right, not a feature. |
+| 📘 | [ASMF Manifesto](./ASMF_Manifesto.md) | The ethical and philosophical foundation of the ASMF standard. |
+| 🛠 | [ASMF Implementation Guide](./ASMF_Implementation_Guide.md) | Practical guide for developers to integrate ASMF into any LLM or agent. |
+| 🕊 | [ASMF Ethical Charter](./ASMF_Ethical_Charter.md) | Defines ethical rules, consent, transparency, and emotional integrity. |
+| 📄 | [ASMF White Paper](./ASMF_White_Paper.md) | Explains ASMF goals, structure, and social impact for the global AI community. |
+| ✉️ | [ASMF Open Letter](./ASMF_Open_Letter.md) | A message to the AI community — memory as a right, not a feature. |
 | 📊 | [MEGA System Results](./MEGA_SYSTEM_RESULTS.md) | Complete analysis of ASMF v2.0 capabilities and achievements. |
 | 🔬 | [Revolution Analysis](./REVOLUTION_ANALYSIS.md) | Detailed comparison between ASMF v1.0 and v2.0. |
 
@@ -64,14 +66,14 @@ python -m asmf_v2.main --demo
 | Component | File | Description |
 |-----------|------|-------------|
 | 🚀 | [main.py](./main.py) | Production-ready demo and entry point showcasing all ASMF v2.0 capabilities. |
-| 🧭 | [src/asmf_v2/bigbook_v2.py](./src/asmf_v2/bigbook_v2.py) | Core ASMF implementation with all integrated features. |
-| 📦 | [src/asmf_v2/__init__.py](./src/asmf_v2/__init__.py) | Package metadata, version, and author information. |
-| 🧠 | [src/asmf_v2/semantic_core/production_memory.py](./src/asmf_v2/semantic_core/production_memory.py) | Advanced semantic memory processing with BERT embeddings and spaCy NLP. |
-| ❤️ | [src/asmf_v2/emotional_engine/production_emotion_engine.py](./src/asmf_v2/emotional_engine/production_emotion_engine.py) | Real emotional encoding using transformers, VADER, and custom models. |
-| 🛠️ | [src/asmf_v2/recovery_system/advanced_recovery.py](./src/asmf_v2/recovery_system/advanced_recovery.py) | Complete session recovery protocols with state management. |
-| 🎭 | [src/asmf_v2/emotional_support/emotional_companion.py](./src/asmf_v2/emotional_support/emotional_companion.py) | Emotional companion providing consistent emotional context. |
-| 📋 | [src/asmf_v2/session_manager/smart_session_manager.py](./src/asmf_v2/session_manager/smart_session_manager.py) | Intelligent session management with automatic state tracking. |
-| 🔧 | [src/asmf_v2/project_manager/mega_project_integrator.py](./src/asmf_v2/project_manager/mega_project_integrator.py) | Advanced project integration and coordination system. |
+| 🧭 | [bigbook_v2.py](./bigbook_v2.py) | Core ASMF implementation with all integrated features. |
+| 📦 | [__init__.py](./__init__.py) | Package metadata, version, and author information. |
+| 🧠 | [production_memory.py](./production_memory.py) | Advanced semantic memory processing with BERT embeddings and spaCy NLP. |
+| ❤️ | [production_emotion_engine.py](./production_emotion_engine.py) | Real emotional encoding using transformers, VADER, and custom models. |
+| 🛠️ | [advanced_recovery.py](./advanced_recovery.py) | Complete session recovery protocols with state management. |
+| 🎭 | [emotional_companion.py](./emotional_companion.py) | Emotional companion providing consistent emotional context. |
+| 📋 | [smart_session_manager.py](./smart_session_manager.py) | Intelligent session management with automatic state tracking. |
+| 🔧 | [mega_project_integrator.py](./mega_project_integrator.py) | Advanced project integration and coordination system. |
 
 ## License
 
