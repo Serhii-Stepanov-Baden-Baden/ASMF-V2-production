@@ -1,0 +1,36 @@
+# Core Dependencies
+numpy>=1.24.0
+pandas>=2.0.0
+pyyaml>=6.0
+
+# NLP and Semantic Processing
+spacy>=3.6.0
+transformers>=4.30.0
+torch>=2.0.0
+sentence-transformers>=2.2.0
+nltk>=3.8.0
+
+# Emotion and Sentiment Analysis
+vaderSentiment>=3.3.2
+textblob>=0.17.0
+emotion>=1.1.0
+
+# Storage and Caching
+sqlalchemy>=2.0.0
+redis>=4.5.0
+lz4>=4.0.0
+
+# API and Web Framework
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+loguru>=0.7.0
+dataclasses-json>=0.6.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
