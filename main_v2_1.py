@@ -41,7 +41,7 @@ except ImportError:
 import logging
 from loguru import logger
 
-class ASMF_v2_1:
+class ASMFApplication:
     """
     Enhanced ASMF v2.1 with GPU acceleration and universal LLM integration
     
@@ -462,7 +462,7 @@ async def main():
         gpu_enabled = True
     
     # Initialize ASMF
-    asmf = ASMF_v2_1(gpu_enabled=gpu_enabled, db_path=args.db_path)
+    asmf = ASMFApplication(gpu_enabled=gpu_enabled, db_path=args.db_path)
     
     try:
         await asmf.initialize()
