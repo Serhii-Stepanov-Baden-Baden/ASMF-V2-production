@@ -1,0 +1,77 @@
+# ASMF v2.1 - Enhanced Requirements with GPU Support
+
+# Core Dependencies
+numpy>=1.24.0
+pandas>=2.0.0
+pyyaml>=6.0
+
+# NLP and Semantic Processing
+spacy>=3.6.0
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+nltk>=3.8.0
+
+# GPU Support (New in v2.1)
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+# GPU-specific installations (uncomment based on your hardware):
+# torch[cuda]>=2.0.0; sys_platform == "linux"  # NVIDIA CUDA
+# torch[cuda]>=2.0.0; sys_platform == "darwin"  # Apple Silicon MPS
+# torch[cuda]>=2.0.0; sys_platform == "win32"   # Windows CUDA
+
+# Emotion and Sentiment Analysis  
+vaderSentiment>=3.3.2
+textblob>=0.17.0
+emotion>=1.1.0
+
+# Storage and Caching (Enhanced for v2.1)
+sqlalchemy>=2.0.0
+redis>=4.5.0
+lz4>=4.0.0
+# Optional: Advanced vector search
+# faiss-cpu>=1.7.4  # CPU FAISS
+# faiss-gpu>=1.7.4  # GPU FAISS (requires CUDA)
+
+# API and Web Framework
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+
+# AI Provider SDKs (for LLM wrapper)
+openai>=1.3.0
+anthropic>=0.25.0
+google-generativeai>=0.3.0
+groq>=0.4.0
+# For Grok/XAI:
+# xai>=1.0.0  # When available
+
+# Utilities
+python-dotenv>=1.0.0
+loguru>=0.7.0
+dataclasses-json>=0.6.0
+
+# Database optimization (v2.1)
+aiosqlite>=0.19.0  # Async SQLite support
+# Optional for production databases:
+# psycopg2-binary>=2.9.0  # PostgreSQL
+# pymongo>=4.5.0  # MongoDB
+
+# Performance monitoring (v2.1)
+psutil>=5.9.0
+memory-profiler>=0.61.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Development
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Documentation
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+mkdocstrings[python]>=0.22.0
