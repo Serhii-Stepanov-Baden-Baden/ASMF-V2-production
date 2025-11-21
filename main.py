@@ -1,525 +1,539 @@
+#!/usr/bin/env python3
 """
-ASMF v2.0 - Демонстрация Мега-Системы (Облегченная версия)
-Показывает работу системы управления проектами без внешних зависимостей
+ASMF v2.1 - Advanced Semantic Memory Framework
+Main entry point with GPU acceleration and universal LLM integration
+
+Автор: Serhii Stepanov
+Дата: 21 ноября 2025
+Версия: v2.1 (Production Grade)
 """
 
 import asyncio
-import json
-import datetime
-import random
+import argparse
+import sys
+import os
+from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Any
-from dataclasses import dataclass
-from enum import Enum
 
+# Core ASMF v2.0 components
+from bigbook_v2 import ASMF
+from production_memory import ProductionMemory
+from production_emotion_engine import ProductionEmotionEngine
+from advanced_recovery import AdvancedRecoverySystem
+from smart_session_manager import SmartSessionManager
+from emotional_companion import EmotionalCompanion
+from mega_project_integrator import MegaProjectIntegrator
 
-class ProjectStatus(Enum):
-    ACTIVE = "active"
-    COMPLETED = "completed"
-    ARCHIVED = "archived"
+# New v2.1 components
+from database_optimization import OptimizedStorage
+from gpu_support import GPUSupport
 
+# Optional: Universal LLM wrapper
+try:
+    from examples.llm_wrapper_v2_1 import UniversalLLM
+    LLM_AVAILABLE = True
+except ImportError:
+    print("⚠️  LLM wrapper not available - install requirements_v2_1.txt")
+    LLM_AVAILABLE = False
 
-class EmotionalState(Enum):
-    ENERGETIC = "energetic"
-    TIRED = "tired"
-    FRUSTRATED = "frustrated"
-    FOCUSED = "focused"
-    SATISFIED = "satisfied"
+# Logging
+import logging
+from loguru import logger
 
-
-class SupportAction(Enum):
-    ENCOURAGE = "encourage"
-    BREAK_SUGGESTION = "break_suggestion"
-    JOKE_TELLING = "joke_telling"
-    COMFORT = "comfort"
-
-
-@dataclass
-class SessionContext:
-    """Упрощенный контекст сессии"""
-    session_id: str
-    project_id: str
-    user_energy: float
-    focus_level: float
-    creative_moments: List[str]
-    work_completed: Dict[str, Any]
-
-
-@dataclass
-class ProjectComponent:
-    """Компонент проекта"""
-    component_id: str
-    component_name: str
-    sessions_needed: int
-    current_sessions: int
-    status: str
-    achievements: List[str]
-
-
-class LightweightEmotionalCompanion:
-    """Облегченный эмоциональный компаньон"""
+class ASMF_v2_1:
+    """
+    Enhanced ASMF v2.1 with GPU acceleration and universal LLM integration
     
-    def __init__(self):
-        self.encouragement_phrases = [
-            "Помните, каждая проблема - это возможность для роста!",
-            "Вы на правильном пути. Каждый шаг приближает к цели!",
-            "Ваша настойчивость восхищает. Продолжайте в том же духе!",
-            "Каждое исправление делает код лучше. Вы создаёте что-то особенное!"
-        ]
-        
-        self.jokes = [
-            "Почему программисты предпочитают темную тему? Потому что свет привлекает баги!",
-            "Как называется программист, который не пьет кофе? Дебаггер!",
-            "Что говорит один байт другому? Ты выглядишь немного не в своем бите!"
-        ]
+    Features:
+    - GPU-accelerated semantic processing
+    - FAISS vector search with BLOB storage
+    - Universal LLM integration (OpenAI, Anthropic, Groq, xAI)
+    - Async processing for production scalability
+    """
     
-    async def analyze_emotions(self, user_input: str, work_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Простой анализ эмоций"""
-        energy = max(0.1, 1.0 - work_data.get('session_duration', 30) / 120)
-        frustration = work_data.get('errors_encountered', 0) * 0.1
-        satisfaction = work_data.get('completion_percentage', 0.5)
+    def __init__(self, gpu_enabled: bool = True, db_path: str = "asmf_v2_1.db"):
+        """
+        Initialize ASMF v2.1 with all enhancements
         
-        if energy < 0.3:
-            state = EmotionalState.TIRED
-            action = SupportAction.BREAK_SUGGESTION
-            message = f"Похоже, вы устали! {random.choice(self.jokes)}"
-        elif frustration > 0.5:
-            state = EmotionalState.FRUSTRATED
-            action = SupportAction.COMFORT
-            message = f"{random.choice(self.encouragement_phrases)} Не сдавайтесь!"
-        elif satisfaction > 0.7:
-            state = EmotionalState.SATISFIED
-            action = SupportAction.ENCOURAGE
-            message = "Отличная работа! Продолжайте в том же духе!"
-        else:
-            state = EmotionalState.FOCUSED
-            action = SupportAction.ENCOURAGE
-            message = "Фокус идеален! Это лучшее время для продуктивной работы."
+        Args:
+            gpu_enabled: Enable GPU acceleration
+            db_path: Path to optimized database
+        """
+        self.version = "2.1.0"
+        self.gpu_enabled = gpu_enabled
+        self.db_path = db_path
+        self.start_time = datetime.now()
         
-        return {
-            "emotional_state": state.value,
-            "energy_level": energy,
-            "frustration_level": frustration,
-            "satisfaction_level": satisfaction,
-            "action": action.value,
-            "message": message
+        # Initialize logging
+        logger.remove()
+        logger.add(sys.stdout, level="INFO", format="{time:HH:mm:ss} | {level:8} | {message}")
+        
+        # Core v2.0 components
+        self.asm_core = ASMF()
+        self.memory_engine = ProductionMemory()
+        self.emotion_engine = ProductionEmotionEngine()
+        self.recovery_system = AdvancedRecoverySystem()
+        self.session_manager = SmartSessionManager()
+        self.emotional_companion = EmotionalCompanion()
+        self.project_integrator = MegaProjectIntegrator()
+        
+        # New v2.1 components
+        self.gpu_support = GPUSupport() if self.gpu_enabled else None
+        self.storage = OptimizedStorage(db_path)
+        self.llm = None
+        
+        # Performance metrics
+        self.metrics = {
+            "memories_processed": 0,
+            "gpu_operations": 0,
+            "vector_searches": 0,
+            "llm_calls": 0,
+            "start_time": self.start_time
         }
-
-
-class LightweightSessionManager:
-    """Облегченный менеджер сессий"""
+        
+        logger.info(f"🚀 ASMF v{self.version} initialized")
+        logger.info(f"   GPU Enabled: {self.gpu_enabled}")
+        logger.info(f"   Database: {self.db_path}")
+        logger.info(f"   LLM Available: {LLM_AVAILABLE}")
+        
+    async def initialize(self):
+        """Initialize all components asynchronously"""
+        try:
+            # Initialize database optimization
+            await self.storage.initialize()
+            logger.info("✅ Database optimization ready")
+            
+            # Check GPU
+            if self.gpu_support and self.gpu_support.is_available():
+                gpu_info = self.gpu_support.get_memory_info()
+                logger.info(f"✅ GPU acceleration active: {self.gpu_support.device}")
+                logger.info(f"   GPU Memory: {gpu_info['used']}/{gpu_info['total']}MB")
+            elif self.gpu_enabled:
+                logger.warning("⚠️  GPU requested but not available - falling back to CPU")
+            
+            # Initialize core components
+            await self.memory_engine.initialize()
+            await self.emotion_engine.initialize()
+            await self.recovery_system.initialize()
+            await self.session_manager.initialize()
+            
+            logger.info("✅ All components initialized successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Initialization failed: {e}")
+            raise
     
-    def __init__(self):
-        self.active_sessions = {}
-        self.project_progress = {}
-    
-    async def start_session(self, project_id: str, user_context: Dict[str, Any]) -> SessionContext:
-        """Запуск сессии"""
-        session_id = f"session_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    async def process_memory(self, text: str, embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2") -> Dict[str, Any]:
+        """
+        Process semantic memory with GPU acceleration and optimized storage
         
-        session = SessionContext(
-            session_id=session_id,
-            project_id=project_id,
-            user_energy=user_context.get('user_energy', 0.8),
-            focus_level=user_context.get('focus_level', 0.8),
-            creative_moments=[],
-            work_completed={}
-        )
+        Args:
+            text: Input text to process
+            embedding_model: Model for embeddings
+            
+        Returns:
+            Dict with processing results
+        """
+        start_time = datetime.now()
         
-        self.active_sessions[session_id] = session
-        return session
-    
-    async def classify_work(self, work_data: Dict[str, Any]) -> Dict[str, str]:
-        """Классификация работы для архивирования"""
-        archives = {}
-        
-        if work_data.get('breakthrough_moment'):
-            archives['creative_breakthrough'] = {
-                "type": "creative",
-                "description": work_data['breakthrough_moment'],
-                "innovation_score": work_data.get('innovation_score', 0.8)
-            }
-        
-        if work_data.get('errors_encountered', 0) > 2:
-            archives['debug_session'] = {
-                "type": "debug",
-                "errors_found": work_data.get('errors_encountered', 0)
-            }
-        
-        if work_data.get('completion_percentage', 0) > 0.8:
-            archives['major_progress'] = {
-                "type": "progress",
-                "completion": work_data.get('completion_percentage', 0)
-            }
-        
-        return archives
-    
-    async def close_session(self, session_id: str, work_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Завершение сессии"""
-        if session_id not in self.active_sessions:
-            return {"error": "Сессия не найдена"}
-        
-        session = self.active_sessions[session_id]
-        archives = await self.classify_work(work_data)
-        
-        return {
-            "session_closed": True,
-            "session_id": session_id,
-            "archives_created": len(archives),
-            "archive_details": archives
-        }
-
-
-class LightweightMegaProjectIntegrator:
-    """Облегченный интегратор мега-проектов"""
-    
-    def __init__(self):
-        self.emotional_companion = LightweightEmotionalCompanion()
-        self.session_manager = LightweightSessionManager()
-        self.projects = {}
-        self.active_project = None
-    
-    async def create_project(self, config: Dict[str, Any]) -> str:
-        """Создание мега-проекта"""
-        project_id = f"mega_project_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
-        components = []
-        for comp_config in config.get('components', []):
-            component = ProjectComponent(
-                component_id=comp_config['id'],
-                component_name=comp_config['name'],
-                sessions_needed=comp_config['sessions_needed'],
-                current_sessions=0,
-                status='planned',
-                achievements=[]
+        try:
+            # Generate embeddings (GPU-accelerated if available)
+            if self.gpu_support and self.gpu_support.is_available():
+                embedding = self.gpu_support.bert_embeddings([text], embedding_model)[0]
+                self.metrics["gpu_operations"] += 1
+                logger.debug("🖥️  Used GPU for embeddings")
+            else:
+                # Fallback to CPU processing
+                embedding = self.memory_engine.generate_embedding(text, embedding_model)
+            
+            # Store in optimized database (BLOB + FAISS)
+            memory_id = await self.storage.store_embedding(
+                text=text,
+                embedding=embedding,
+                metadata={
+                    "model": embedding_model,
+                    "processed_at": datetime.now().isoformat(),
+                    "gpu_used": self.gpu_support and self.gpu_support.is_available()
+                }
             )
-            components.append(component)
-        
-        self.projects[project_id] = {
-            'project_id': project_id,
-            'name': config['name'],
-            'description': config['description'],
-            'components': components,
-            'total_sessions': sum(c.sessions_needed for c in components),
-            'completed_sessions': 0,
-            'creative_moments': []
-        }
-        
-        return project_id
-    
-    async def start_session(self, project_id: str, user_context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Запуск сессии проекта"""
-        if project_id not in self.projects:
-            return {"error": "Проект не найден"}
-        
-        project = self.projects[project_id]
-        session = await self.session_manager.start_session(project_id, user_context or {})
-        
-        # Получаем текущий компонент
-        current_component = None
-        for comp in project['components']:
-            if comp.status in ['planned', 'in_progress']:
-                current_component = comp
-                comp.status = 'in_progress'
-                break
-        
-        self.active_project = project_id
-        
-        return {
-            "session_started": True,
-            "session_id": session.session_id,
-            "current_component": current_component.component_name if current_component else "Завершено",
-            "progress": (project['completed_sessions'] / project['total_sessions']) * 100,
-            "welcome_message": f"Добро пожаловать в разработку {project['name']}!"
-        }
-    
-    async def process_work(self, project_id: str, work_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Обработка работы в сессии"""
-        if project_id not in self.projects:
-            return {"error": "Проект не найден"}
-        
-        # Анализ эмоций
-        emotional_analysis = await self.emotional_companion.analyze_emotions(
-            work_data.get('user_input', ''), 
-            work_data
-        )
-        
-        # Обновление компонента
-        project = self.projects[project_id]
-        current_component = next((c for c in project['components'] if c.status == 'in_progress'), None)
-        
-        if current_component:
-            current_component.current_sessions += 1
             
-            # Отслеживание достижений
-            if work_data.get('breakthrough_moment'):
-                current_component.achievements.append(work_data['breakthrough_moment'])
-                project['creative_moments'].append(work_data['breakthrough_moment'])
+            # Process emotions
+            emotion_result = await self.emotion_engine.analyze_emotion(text)
             
-            # Проверка завершения компонента
-            if current_component.current_sessions >= current_component.sessions_needed:
-                current_component.status = 'completed'
-                project['completed_sessions'] += current_component.current_sessions
-        
-        return {
-            "work_accepted": True,
-            "emotional_support": emotional_analysis,
-            "component_progress": {
-                "name": current_component.component_name if current_component else "Нет",
-                "sessions": current_component.current_sessions if current_component else 0,
-                "status": current_component.status if current_component else "completed",
-                "achievements": len(current_component.achievements) if current_component else 0
-            },
-            "project_progress": (project['completed_sessions'] / project['total_sessions']) * 100
-        }
-    
-    async def conclude_session(self, project_id: str, work_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Завершение сессии"""
-        if project_id not in self.projects:
-            return {"error": "Проект не найден"}
-        
-        project = self.projects[project_id]
-        session_result = await self.session_manager.close_session(
-            self.session_manager.active_sessions and list(self.session_manager.active_sessions.keys())[0] or "unknown",
-            work_data
-        )
-        
-        return {
-            "session_concluded": True,
-            "archive_results": session_result.get('archive_details', {}),
-            "project_completion": (project['completed_sessions'] / project['total_sessions']) * 100
-        }
-    
-    async def initiate_assembly(self, project_id: str) -> Dict[str, Any]:
-        """Запуск финальной сборки"""
-        if project_id not in self.projects:
-            return {"error": "Проект не найден"}
-        
-        project = self.projects[project_id]
-        completed_components = [c for c in project['components'] if c.status == 'completed']
-        
-        if len(completed_components) < len(project['components']) * 0.8:
-            missing = [c.component_name for c in project['components'] if c.status != 'completed']
-            return {
-                "assembly_ready": False,
-                "missing_components": missing,
-                "readiness": len(completed_components) / len(project['components']) * 100
+            # Update session
+            session_id = await self.session_manager.update_session(
+                memory_id=memory_id,
+                content=text,
+                emotion_vector=emotion_result["vector"]
+            )
+            
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            result = {
+                "memory_id": memory_id,
+                "session_id": session_id,
+                "embedding": embedding,
+                "emotion": emotion_result,
+                "processing_time": processing_time,
+                "gpu_accelerated": self.gpu_support and self.gpu_support.is_available()
             }
+            
+            self.metrics["memories_processed"] += 1
+            
+            logger.info(f"💾 Memory {memory_id} processed in {processing_time:.3f}s")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Memory processing failed: {e}")
+            raise
+    
+    async def search(self, query: str, top_k: int = 10, use_faiss: bool = True) -> List[Dict[str, Any]]:
+        """
+        Fast semantic search with FAISS optimization
         
-        return {
-            "assembly_ready": True,
-            "components_ready": len(completed_components),
-            "assembly_message": "Все компоненты готовы к финальной сборке!",
-            "final_steps": [
-                "Интеграция всех компонентов",
-                "Комплексное тестирование", 
-                "Оптимизация производительности",
-                "Финальная валидация"
+        Args:
+            query: Search query
+            top_k: Number of results to return
+            use_faiss: Use FAISS index for speed
+            
+        Returns:
+            List of similar memories with scores
+        """
+        try:
+            # Generate query embedding
+            if self.gpu_support and self.gpu_support.is_available():
+                query_embedding = self.gpu_support.bert_embeddings([query])[0]
+            else:
+                query_embedding = self.memory_engine.generate_embedding(query)
+            
+            # Search using FAISS (fast) or fallback method
+            if use_faiss:
+                results = await self.storage.similarity_search(
+                    query_embedding=query_embedding,
+                    top_k=top_k
+                )
+                self.metrics["vector_searches"] += 1
+                logger.debug(f"🔍 FAISS search: {len(results)} results")
+            else:
+                # Fallback to standard search
+                results = await self.storage.fallback_search(
+                    query_embedding=query_embedding,
+                    top_k=top_k
+                )
+            
+            # Add emotion context
+            for result in results:
+                if "memory_id" in result:
+                    emotion = await self.emotion_engine.analyze_emotion(result["text"])
+                    result["emotion"] = emotion
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"❌ Search failed: {e}")
+            raise
+    
+    async def integrate_llm(self, provider: str, model: str, **kwargs) -> Dict[str, Any]:
+        """
+        Integrate with LLM provider using universal wrapper
+        
+        Args:
+            provider: LLM provider (openai, anthropic, groq, xai)
+            model: Model name
+            **kwargs: Additional LLM parameters
+            
+        Returns:
+            Dict with LLM configuration
+        """
+        if not LLM_AVAILABLE:
+            raise ImportError("LLM wrapper not available - install requirements_v2_1.txt")
+        
+        try:
+            self.llm = UniversalLLM(provider=provider, model=model, **kwargs)
+            
+            # Test connection
+            test_response = await self.llm.generate(
+                prompt="Hello! This is a test of ASMF v2.1 LLM integration.",
+                max_tokens=50
+            )
+            
+            result = {
+                "provider": provider,
+                "model": model,
+                "connection_status": "active",
+                "test_response": test_response,
+                "available_models": self.llm.get_available_models()
+            }
+            
+            self.metrics["llm_calls"] += 1
+            
+            logger.info(f"🤖 LLM {provider}/{model} integrated successfully")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ LLM integration failed: {e}")
+            raise
+    
+    async def generate_response(self, prompt: str, context_memories: List[Dict] = None) -> Dict[str, Any]:
+        """
+        Generate LLM response with ASMF context
+        
+        Args:
+            prompt: User prompt
+            context_memories: Relevant memories for context
+            
+        Returns:
+            Dict with LLM response and metadata
+        """
+        if not self.llm:
+            raise RuntimeError("LLM not integrated - call integrate_llm() first")
+        
+        try:
+            # Prepare context from memories
+            context_text = ""
+            if context_memories:
+                context_parts = []
+                for memory in context_memories[:5]:  # Limit context
+                    context_parts.append(f"Memory: {memory.get('text', '')}")
+                context_text = "\n".join(context_parts)
+            
+            # Generate response
+            response = await self.llm.generate(
+                prompt=f"Context: {context_text}\n\nUser: {prompt}",
+                temperature=0.7,
+                max_tokens=500
+            )
+            
+            self.metrics["llm_calls"] += 1
+            
+            result = {
+                "prompt": prompt,
+                "response": response,
+                "context_memories": len(context_memories) if context_memories else 0,
+                "generated_at": datetime.now().isoformat()
+            }
+            
+            logger.info(f"💬 LLM response generated ({len(response)} chars)")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Response generation failed: {e}")
+            raise
+    
+    async def get_performance_stats(self) -> Dict[str, Any]:
+        """Get current performance statistics"""
+        uptime = (datetime.now() - self.start_time).total_seconds()
+        
+        stats = {
+            **self.metrics,
+            "uptime_seconds": uptime,
+            "gpu_available": self.gpu_support and self.gpu_support.is_available(),
+            "database_path": self.db_path,
+            "version": self.version
+        }
+        
+        if self.gpu_support and self.gpu_support.is_available():
+            gpu_info = self.gpu_support.get_memory_info()
+            stats["gpu_memory"] = gpu_info
+        
+        return stats
+    
+    async def demo_complete_workflow(self):
+        """Demonstrate complete ASMF v2.1 workflow"""
+        logger.info("🎬 Starting ASMF v2.1 Complete Workflow Demo")
+        
+        try:
+            # 1. Process multiple memories
+            logger.info("\n📝 Step 1: Processing semantic memories")
+            
+            memories = [
+                "ASMF v2.1 introduces GPU acceleration for semantic processing",
+                "FAISS enables sub-second vector search for large datasets",
+                "Universal LLM wrapper supports multiple providers seamlessly",
+                "BLOB storage optimizes memory footprint for production use",
+                "Async processing enables concurrent operations at scale"
             ]
-        }
-    
-    async def finalize_project(self, project_id: str) -> Dict[str, Any]:
-        """Финализация проекта"""
-        if project_id not in self.projects:
-            return {"error": "Проект не найден"}
-        
-        project = self.projects[project_id]
-        
-        return {
-            "project_completed": True,
-            "project_name": project['name'],
-            "total_components": len(project['components']),
-            "completed_sessions": project['completed_sessions'],
-            "creative_breakthroughs": len(project['creative_moments']),
-            "completion_message": "🎉 Поздравляем! Проект успешно завершен!",
-            "final_stats": {
-                "components_completed": len([c for c in project['components'] if c.status == 'completed']),
-                "sessions_completed": project['completed_sessions'],
-                "creative_moments": len(project['creative_moments']),
-                "quality_score": 0.92
-            }
-        }
-
-
-class MegaProjectDemo:
-    """Демонстрация мега-системы"""
-    
-    def __init__(self):
-        self.integrator = LightweightMegaProjectIntegrator()
-    
-    async def run_complete_demo(self):
-        """Полная демонстрация"""
-        
-        print("🚀 Демонстрация ASMF v2.0 - Мега-Система Управления Проектами")
-        print("=" * 70)
-        
-        # 1. Создание проекта электромобиля
-        print("\n📋 1. СОЗДАНИЕ МЕГА-ПРОЕКТА")
-        print("-" * 40)
-        
-        project_config = {
-            "name": "Революционный Электромобиль",
-            "description": "Создание инновационного электромобиля",
-            "components": [
-                {"id": "motor", "name": "Электромотор", "sessions_needed": 8},
-                {"id": "battery", "name": "Аккумулятор", "sessions_needed": 10},
-                {"id": "control", "name": "Система управления", "sessions_needed": 6},
-                {"id": "body", "name": "Корпус", "sessions_needed": 7}
+            
+            processed_ids = []
+            for i, memory in enumerate(memories, 1):
+                result = await self.process_memory(memory)
+                processed_ids.append(result["memory_id"])
+                logger.info(f"   Memory {i}: {result['memory_id']} (GPU: {result['gpu_accelerated']})")
+            
+            # 2. Perform semantic search
+            logger.info("\n🔍 Step 2: Semantic search with FAISS")
+            
+            search_queries = [
+                "GPU acceleration benefits",
+                "vector search optimization",
+                "LLM integration capabilities"
             ]
-        }
-        
-        project_id = await self.integrator.create_project(project_config)
-        print(f"✅ Проект создан: {project_id}")
-        print(f"🎯 Название: {project_config['name']}")
-        print(f"🔧 Компонентов: {len(project_config['components'])}")
-        
-        # 2. Работа над электромотором
-        print("\n⚡ 2. РАЗРАБОТКА ЭЛЕКТРОМОТОРА")
-        print("-" * 40)
-        
-        session_start = await self.integrator.start_session(project_id)
-        print(f"🚀 Сессия: {session_start['session_id']}")
-        print(f"🔧 Компонент: {session_start['current_component']}")
-        print(f"📊 Прогресс: {session_start['progress']:.1f}%")
-        
-        # Симуляция нескольких сессий над мотором
-        motor_sessions = [
-            {
-                "tasks_completed": ["Исследование технологий", "Проектирование"],
-                "completion_percentage": 0.25,
-                "user_input": "Отлично, начало положено!",
-                "session_duration": 30,
-                "errors_encountered": 1
-            },
-            {
-                "tasks_completed": ["Прототип", "Тестирование"],
-                "completion_percentage": 0.50,
-                "user_input": "Иду хорошо, но есть сложности",
-                "session_duration": 35,
-                "errors_encountered": 2
-            },
-            {
-                "breakthrough_moment": "Достигли КПД 97.5%! Революционное решение",
-                "innovation_score": 0.9,
-                "completion_percentage": 0.75,
-                "user_input": "Невероятный прорыв!",
-                "session_duration": 40,
-                "errors_encountered": 0
-            },
-            {
-                "tasks_completed": ["Оптимизация", "Финальные испытания"],
-                "completion_percentage": 1.0,
-                "user_input": "Электромотор готов!",
-                "session_duration": 25,
-                "errors_encountered": 0
-            }
-        ]
-        
-        for i, session_data in enumerate(motor_sessions, 1):
-            print(f"\n🔧 Сессия {i}/4 над электромотором:")
             
-            work_result = await self.integrator.process_work(project_id, session_data)
+            for query in search_queries:
+                results = await self.search(query, top_k=3)
+                logger.info(f"   Query: '{query}'")
+                for result in results[:2]:  # Show top 2
+                    logger.info(f"     → {result['text'][:60]}... (score: {result.get('similarity', 0):.3f})")
             
-            print(f"   📊 Прогресс: {session_data['completion_percentage']:.1%}")
-            print(f"   💭 Эмоции: {work_result['emotional_support']['emotional_state']}")
-            print(f"   🤖 Поддержка: {work_result['emotional_support']['message'][:60]}...")
+            # 3. Test LLM integration (if available)
+            if LLM_AVAILABLE:
+                logger.info("\n🤖 Step 3: LLM Integration")
+                
+                # Try Groq first (often faster)
+                try:
+                    await self.integrate_llm("groq", "llama3-70b-8192")
+                    provider = "Groq"
+                except:
+                    # Fallback to OpenAI
+                    await self.integrate_llm("openai", "gpt-3.5-turbo")
+                    provider = "OpenAI"
+                
+                # Generate contextual response
+                context_results = await self.search("ASMF v2.1 features", top_k=3)
+                response = await self.generate_response(
+                    "What are the main benefits of ASMF v2.1?",
+                    context_memories=context_results
+                )
+                
+                logger.info(f"   Provider: {provider}")
+                logger.info(f"   Response: {response['response'][:100]}...")
             
-            if session_data.get('breakthrough_moment'):
-                print(f"   🌟 Прорыв: {session_data['breakthrough_moment']}")
+            # 4. Performance statistics
+            logger.info("\n📊 Step 4: Performance Statistics")
             
-            # Завершение сессии
-            conclusion = await self.integrator.conclude_session(project_id, session_data)
-            print(f"   📦 Архив: {conclusion['archive_results']}")
-        
-        # 3. Переход к аккумулятору
-        print("\n🔋 3. ПЕРЕХОД К РАЗРАБОТКЕ АККУМУЛЯТОРА")
-        print("-" * 50)
-        
-        battery_session = await self.integrator.start_session(project_id)
-        print(f"🔧 Новый компонент: {battery_session['current_component']}")
-        print(f"📊 Общий прогресс: {battery_session['progress']:.1f}%")
-        
-        # Работа с эмоциональной поддержкой
-        battery_work = {
-            "tasks_completed": ["Исследование батарей", "Химический состав"],
-            "completion_percentage": 0.4,
-            "user_input": "Трудно найти баланс между мощностью и безопасностью",
-            "session_duration": 45,
-            "errors_encountered": 3
-        }
-        
-        work_result = await self.integrator.process_work(project_id, battery_work)
-        emotional = work_result['emotional_support']
-        
-        print(f"\n💭 Анализ эмоций:")
-        print(f"   🔋 Энергия: {emotional['energy_level']:.2f}")
-        print(f"   😤 Фрустрация: {emotional['frustration_level']:.2f}")
-        print(f"   🤖 Действие: {emotional['action']}")
-        print(f"   💬 Сообщение: {emotional['message']}")
-        
-        # 4. Завершение разработки
-        print("\n🏁 4. ЗАВЕРШЕНИЕ РАЗРАБОТКИ")
-        print("-" * 40)
-        
-        # Имитируем завершение всех компонентов
-        for i in range(2):  # Завершаем еще 2 компонента
-            await self.integrator.process_work(project_id, {
-                "completion_percentage": 1.0,
-                "tasks_completed": ["Завершение разработки"],
-                "user_input": "Готов к следующему этапу",
-                "session_duration": 20,
-                "errors_encountered": 0
-            })
-        
-        # 5. Финальная сборка
-        print("\n🔧 5. ФИНАЛЬНАЯ СБОРКА")
-        print("-" * 30)
-        
-        assembly_result = await self.integrator.initiate_assembly(project_id)
-        
-        if assembly_result['assembly_ready']:
-            print(f"✅ Готов к сборке!")
-            print(f"🔧 Компонентов готово: {assembly_result['components_ready']}")
-            print(f"📋 Этапы сборки:")
-            for step in assembly_result['final_steps']:
-                print(f"   • {step}")
-        else:
-            print(f"⏳ Недостает компонентов: {assembly_result['missing_components']}")
-        
-        # 6. Финализация проекта
-        print("\n🏆 6. ФИНАЛИЗАЦИЯ ПРОЕКТА")
-        print("-" * 40)
-        
-        final_result = await self.integrator.finalize_project(project_id)
-        
-        print(f"🎉 ПРОЕКТ ЗАВЕРШЕН!")
-        print(f"📊 Название: {final_result['project_name']}")
-        print(f"🏗️  Компонентов: {final_result['total_components']}")
-        print(f"⚡ Сессий: {final_result['completed_sessions']}")
-        print(f"🌟 Прорывов: {final_result['creative_breakthroughs']}")
-        print(f"💎 Качество: {final_result['final_stats']['quality_score']:.1%}")
-        print(f"\n💬 {final_result['completion_message']}")
-        
-        # 7. Итоговая статистика
-        print("\n📊 ИТОГОВАЯ СТАТИСТИКА")
-        print("-" * 40)
-        stats = final_result['final_stats']
-        print(f"✅ Завершено компонентов: {stats['components_completed']}")
-        print(f"⚡ Выполнено сессий: {stats['sessions_completed']}")
-        print(f"🌟 Творческих прорывов: {stats['creative_moments']}")
-        print(f"💎 Итоговое качество: {stats['quality_score']:.1%}")
-        
-        return final_result
+            stats = await self.get_performance_stats()
+            logger.info(f"   Memories processed: {stats['memories_processed']}")
+            logger.info(f"   GPU operations: {stats['gpu_operations']}")
+            logger.info(f"   Vector searches: {stats['vector_searches']}")
+            logger.info(f"   LLM calls: {stats['llm_calls']}")
+            logger.info(f"   Uptime: {stats['uptime_seconds']:.1f}s")
+            
+            if stats.get('gpu_memory'):
+                gpu_mem = stats['gpu_memory']
+                logger.info(f"   GPU Memory: {gpu_mem['used']}/{gpu_mem['total']}MB")
+            
+            logger.info("\n✅ Demo completed successfully!")
+            
+        except Exception as e:
+            logger.error(f"❌ Demo failed: {e}")
+            raise
+    
+    async def cleanup(self):
+        """Clean up resources"""
+        try:
+            if hasattr(self.storage, 'cleanup'):
+                await self.storage.cleanup()
+            
+            if self.gpu_support:
+                self.gpu_support.cleanup()
+            
+            logger.info("🧹 Cleanup completed")
+            
+        except Exception as e:
+            logger.error(f"❌ Cleanup failed: {e}")
 
-
-async def run_mega_demo():
-    """Запуск демонстрации"""
-    demo = MegaProjectDemo()
-    return await demo.run_complete_demo()
-
+async def main():
+    """Main entry point"""
+    parser = argparse.ArgumentParser(description="ASMF v2.1 - Advanced Semantic Memory Framework")
+    parser.add_argument("--mode", choices=["demo", "interactive", "benchmark"], 
+                       default="demo", help="Operation mode")
+    parser.add_argument("--gpu-enabled", action="store_true", 
+                       help="Enable GPU acceleration")
+    parser.add_argument("--no-gpu", action="store_true", 
+                       help="Disable GPU acceleration")
+    parser.add_argument("--db-path", default="asmf_v2_1.db", 
+                       help="Database path")
+    parser.add_argument("--llm-provider", default="groq", 
+                       help="LLM provider (openai, anthropic, groq)")
+    parser.add_argument("--llm-model", default="llama3-70b-8192", 
+                       help="LLM model name")
+    
+    args = parser.parse_args()
+    
+    # Configure GPU
+    gpu_enabled = True
+    if args.no_gpu:
+        gpu_enabled = False
+    elif args.gpu_enabled:
+        gpu_enabled = True
+    
+    # Initialize ASMF
+    asmf = ASMF_v2_1(gpu_enabled=gpu_enabled, db_path=args.db_path)
+    
+    try:
+        await asmf.initialize()
+        
+        if args.mode == "demo":
+            await asmf.demo_complete_workflow()
+            
+        elif args.mode == "interactive":
+            logger.info("🎯 Interactive mode - type 'quit' to exit")
+            while True:
+                try:
+                    user_input = input("\n🔮 Your query: ").strip()
+                    if user_input.lower() in ['quit', 'exit', 'q']:
+                        break
+                    
+                    if user_input:
+                        # Search for relevant memories
+                        results = await asmf.search(user_input, top_k=5)
+                        
+                        if results:
+                            logger.info(f"Found {len(results)} relevant memories:")
+                            for i, result in enumerate(results[:3], 1):
+                                logger.info(f"  {i}. {result['text'][:80]}...")
+                        else:
+                            logger.info("No relevant memories found. Processing new memory...")
+                            result = await asmf.process_memory(user_input)
+                            logger.info(f"New memory stored: {result['memory_id']}")
+                
+                except KeyboardInterrupt:
+                    break
+                except Exception as e:
+                    logger.error(f"❌ Error: {e}")
+        
+        elif args.mode == "benchmark":
+            logger.info("⚡ Running benchmark...")
+            
+            # Benchmark processing
+            test_text = "ASMF v2.1 performance benchmark text" * 10
+            iterations = 100
+            
+            start_time = datetime.now()
+            for i in range(iterations):
+                await asmf.process_memory(f"{test_text} {i}")
+            processing_time = (datetime.now() - start_time).total_seconds()
+            
+            # Benchmark search
+            start_time = datetime.now()
+            for i in range(iterations // 10):
+                await asmf.search(f"benchmark query {i}", top_k=10)
+            search_time = (datetime.now() - start_time).total_seconds()
+            
+            logger.info(f"📊 Benchmark Results:")
+            logger.info(f"   Processing: {iterations} memories in {processing_time:.2f}s ({iterations/processing_time:.1f}/sec)")
+            logger.info(f"   Search: {iterations//10} queries in {search_time:.2f}s ({(iterations//10)/search_time:.1f}/sec)")
+        
+        # Show final stats
+        stats = await asmf.get_performance_stats()
+        logger.info(f"\n🏁 Final Statistics: {stats['memories_processed()} memories processed")
+        
+    except Exception as e:
+        logger.error(f"❌ Fatal error: {e}")
+        sys.exit(1)
+        
+    finally:
+        await asmf.cleanup()
 
 if __name__ == "__main__":
-    print("Запуск демонстрации ASMF v2.0 Мега-системы...")
-    result = asyncio.run(run_mega_demo())
-    print(f"\n✅ Демонстрация завершена успешно!")
-    print(f"🎯 Проект: {result['project_name']}")
-    print(f"📈 Результат: {result['final_stats']['quality_score']:.1%} качества")
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("👋 Shutting down gracefully...")
+    except Exception as e:
+        logger.error(f"❌ Unhandled error: {e}")
+        sys.exit(1)
