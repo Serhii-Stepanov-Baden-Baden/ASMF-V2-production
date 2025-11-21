@@ -83,9 +83,9 @@ ASMF-v2-production/
 ├── Documentation:
 │   ├── v2.1 Documentation:
 │   │   ├── ASMF_v2_1_Integration_Guide.md    # Developer integration with GPU
-│   │   ├── ASMF_v2_1_Road_to_10_10_FINAL.md # Complete roadmap
-│   │   ├── ASMF_v2_1_Repository_Guide.md    # Repository management
-│   └── v2.0 Documentation (in repo):
+│   │   ├── ASMF_v2_1_Road_to_10_10_FINAL.md # Complete roadmap and final specs
+│   │   └── ASMF_v2_1_Repository_Creation_Plan.md # Repository management
+│   └── v2.0 Documentation:
 │       ├── ASMF_Manifesto.md               # Ethical foundation
 │       ├── ASMF_Implementation_Guide.md    # Developer integration
 │       ├── ASMF_Ethical_Charter.md         # Ethical rules and transparency
@@ -356,19 +356,21 @@ LOG_LEVEL=INFO
 
 ## 📖 Documentation
 
-### Philosophy & Ethics
-- **ASMF Manifesto**: Ethical and philosophical foundation *(referenced in repo)*
-- **ASMF Ethical Charter**: Rules, consent, transparency *(referenced in repo)*
-- **ASMF Open Letter**: Message to AI community *(referenced in repo)*
-
-### Implementation & Analysis
+### v2.1 Documentation
 - **[ASMF v2.1 Integration Guide](ASMF_v2_1_Integration_Guide.md)**: Developer integration with GPU acceleration
 - **[ASMF v2.1 Road to 10/10](ASMF_v2_1_Road_to_10_10_FINAL.md)**: Complete roadmap and final specifications
 - **[ASMF v2.1 Repository Guide](ASMF_v2_1_Repository_Creation_Plan.md)**: Repository management and structure
-- **ASMF Implementation Guide**: Developer integration *(referenced in repo)*
-- **ASMF White Paper**: Goals and social impact *(referenced in repo)*
-- **MEGA System Results**: v2.0 capabilities analysis *(referenced in repo)*
-- **Revolution Analysis**: v1.0 vs v2.0 comparison *(referenced in repo)*
+
+### Philosophy & Ethics
+- **[ASMF Manifesto](ASMF_Manifesto.md)**: Ethical and philosophical foundation
+- **[ASMF Ethical Charter](ASMF_Ethical_Charter.md)**: Rules, consent, transparency
+- **[ASMF Open Letter](ASMF_Open_Letter.md)**: Message to AI community
+
+### Implementation & Analysis
+- **[ASMF Implementation Guide](ASMF_Implementation_Guide.md)**: Developer integration
+- **[ASMF White Paper](ASMF_White_Paper.md)**: Goals and social impact
+- **[MEGA System Results](MEGA_SYSTEM_RESULTS.md)**: v2.0 capabilities analysis
+- **[Revolution Analysis](REVOLUTION_ANALYSIS.md)**: v1.0 vs v2.0 comparison
 
 ---
 
@@ -443,6 +445,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Made with ❤️ by [Serhii Stepanov](https://github.com/Serhii-Stepanov-Baden-Baden)**
 
 [![Star on GitHub](https://img.shields.io/github/stars/Serhii-Stepanov-Baden-Baden/ASMF-v2-production?style=social)](https://github.com/Serhii-Stepanov-Baden-Baden/ASMF-v2-production)
-[![Follow on GitHub](https://img.shields.io/github/followers/Serhii-Stepanov-Baden-Baden?style=social)](https://github.com/Serhii-Stepanov-Baden-Baden)
+[![Follow on GitHub](https://img.shields.io/github/followers/Serhii-Stepanov-Baden-Baden?style=social)](https://github.com/Serhii-Stepanov-Baden-Baden/ASMF-v2-production)
 
 </div>
