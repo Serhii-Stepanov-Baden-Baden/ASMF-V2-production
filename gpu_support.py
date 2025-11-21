@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModel
 import numpy as np
-from typing import List, Optional, Tuple, Dict, Any, Dict, Any
+from typing import List, Optional, Tuple, Dict, Any
 import logging
 
 logger = logging.getLogger(__name__)
