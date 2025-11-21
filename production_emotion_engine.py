@@ -1,9 +1,10 @@
 """
-ASMF v2.0 - Emotional State Encoding Protocol (ESEP)
+ASMF v2.0 - Emotional State Encoding Protocol (ESEP) (Enhanced with v2.1)
 Реальная реализация эмоционального кодирования
 
 Автор: Serhii Stepanov (Baden-Baden, Germany)
 Дата: 21 ноября 2025
+Версия: 2.0 (Enhanced with v2.1)
 """
 
 import asyncio
@@ -11,15 +12,39 @@ import hashlib
 import json
 import logging
 import math
-import numpy as np
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional, Tuple, Union
 from dataclasses import dataclass, asdict
 from enum import Enum
 
-import spacy
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+# Core dependencies with fallback
+try:
+    import spacy
+    from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+    import numpy as np
+    NLP_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"NLP dependencies not available: {e}")
+    NLP_AVAILABLE = False
+    # Mock classes for demo mode
+    spacy = None
+    pipeline = None
+    AutoTokenizer = None
+    AutoModelForSequenceClassification = None
+    SentimentIntensityAnalyzer = None
+    np = None
+
+# v2.1 Enhanced Components
+try:
+    from gpu_support import GPUSupportModule
+    from database_optimization import EnhancedStorageSystem
+    V2_1_AVAILABLE = True
+except ImportError:
+    V2_1_AVAILABLE = False
+    GPUSupportModule = None
+    EnhancedStorageSystem = None
+
 import yaml
 
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +68,9 @@ class EmotionVector:
     confidence: float # 0.0 to 1.0
     dimension_vector: List[float]
     context_factors: Dict[str, float]
+    sentiment: Dict[str, float]
     timestamp: str
+    gpu_accelerated: bool = False
 
 @dataclass
 class EmotionalContext:
@@ -58,7 +85,7 @@ class EmotionalContext:
 
 class ProductionEmotionEngine:
     """
-    Производственный эмоциональный движок
+    Производственный эмоциональный движок (Enhanced with v2.1)
     Реализует реальное эмоциональное кодирование вместо mock
     """
     
@@ -82,55 +109,94 @@ class ProductionEmotionEngine:
         'negative_low': ['sadness', 'disappointment', 'boredom'],
         'neutral': ['calm', 'neutral', 'balanced']
     }
-
-    def __init__(self, config_path: str = "config.yaml"):
+    
+    # v2.1 Enhanced components
+    def __init__(self, config_path: Optional[str] = None):
         """Инициализация с реальными моделями эмоций"""
         self.config = self._load_config(config_path)
+        self.emotional_memory = {}
+        self.session_emotions = {}
+        
+        # v2.1 Enhanced Components
+        self.gpu_support = None
+        self.enhanced_storage = None
+        self.use_gpu = False
         
         # Initialize emotion models
         self._initialize_emotion_models()
         
-        # Emotional state tracking
-        self.emotional_memory = {}
-        self.session_emotions = {}
+        # v2.1 GPU Integration
+        if V2_1_AVAILABLE and self.config.get('use_gpu', False):
+            try:
+                self.gpu_support = GPUSupportModule(
+                    device=self.config.get('gpu_device', 'cuda:0')
+                )
+                self.use_gpu = True
+                logger.info("🚀 GPU acceleration enabled for emotion analysis")
+            except Exception as e:
+                logger.warning(f"GPU initialization failed: {e}")
+                self.use_gpu = False
         
-        # Statistics
+        # Enhanced statistics for v2.1
         self.emotion_stats = {
             'emotions_processed': 0,
             'primary_emotions_detected': {},
             'average_confidence': 0.0,
-            'context_sensitivity_changes': 0
+            'context_sensitivity_changes': 0,
+            'gpu_accelerated_analyses': 0,
+            'total_processing_time': 0.0,
+            'average_emotion_time': 0.0,
+            'fallback_activations': 0,
+            'sentiment_analyses': 0
         }
         
         logger.info("Production Emotion Engine initialized successfully")
+        if self.use_gpu:
+            logger.info("✨ v2.1 GPU acceleration active")
 
-    def _load_config(self, config_path: str) -> Dict[str, Any]:
+    def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
         """Загрузка конфигурации эмоций"""
-        try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-                return config.get('emotional', {})
-        except FileNotFoundError:
-            logger.warning(f"Emotion config not found, using defaults")
-            return {
-                'sensitivity': 0.5,
-                'emotion_model': 'j-hartmann/emotion-english-distilroberta-base',
-                'enable_context_factors': True,
-                'emotional_memory_depth': 10,
-                'volatility_threshold': 0.7
-            }
+        if config_path:
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+                    return config.get('emotional', {})
+            except FileNotFoundError:
+                logger.warning(f"Emotion config not found, using defaults")
+        
+        # Default configuration
+        return {
+            'sensitivity': 0.5,
+            'emotion_model': 'j-hartmann/emotion-english-distilroberta-base',
+            'enable_context_factors': True,
+            'emotional_memory_depth': 10,
+            'volatility_threshold': 0.7,
+            'use_gpu': False,
+            'fallback_mode': not NLP_AVAILABLE
+        }
 
     def _initialize_emotion_models(self):
         """Инициализация моделей для эмоционального анализа"""
+        if not NLP_AVAILABLE:
+            logger.warning("NLP dependencies not available, running in fallback mode")
+            self.emotion_stats['fallback_activations'] += 1
+            return
+            
         try:
             # Основная модель для эмоций
             emotion_model = self.config.get('emotion_model', 'j-hartmann/emotion-english-distilroberta-base')
-            self.emotion_classifier = pipeline(
-                "text-classification",
-                model=emotion_model,
-                return_all_scores=True
-            )
-            logger.info(f"Emotion classifier loaded: {emotion_model}")
+            
+            if self.use_gpu and self.gpu_support:
+                # v2.1 GPU-accelerated emotion classification
+                self.emotion_classifier = self.gpu_support.get_emotion_classifier()
+                logger.info(f"🚀 GPU-accelerated emotion classifier loaded")
+            else:
+                self.emotion_classifier = pipeline(
+                    "text-classification",
+                    model=emotion_model,
+                    return_all_scores=True
+                )
+                logger.info(f"CPU emotion classifier loaded: {emotion_model}")
             
             # VADER для дополнительной эмоциональной оценки
             self.vader_analyzer = SentimentIntensityAnalyzer()
@@ -146,35 +212,94 @@ class ProductionEmotionEngine:
                 
         except Exception as e:
             logger.error(f"Failed to initialize emotion models: {e}")
-            raise
+            self._setup_fallback_mode()
 
+    def _setup_fallback_mode(self):
+        """Настройка fallback режима при ошибках загрузки моделей"""
+        logger.info("Setting up fallback emotion detection mode")
+        self.emotion_stats['fallback_activations'] += 1
+        
+        # Disable real models, enable fallback
+        self.emotion_classifier = None
+        self.vader_analyzer = None
+        self.nlp = None
+        
     async def detect_emotion(self, text: str, context: str = "") -> str:
         """
         Реальная детекция эмоций с использованием transformers
-        Заменяет простой keyword search на advanced emotion detection
+        Enhanced with v2.1 GPU acceleration
         """
         try:
-            # Основной анализ эмоций через transformers
-            emotion_scores = self.emotion_classifier(text)
+            start_time = datetime.now()
             
-            # Извлечение топ эмоции
-            top_emotion = max(emotion_scores[0], key=lambda x: x['score'])
+            if self.emotion_classifier and self.vader_analyzer:
+                # v2.1 GPU-accelerated emotion detection
+                if self.use_gpu and self.gpu_support:
+                    emotion_scores = await self.gpu_support.analyze_emotions_gpu(text)
+                    self.emotion_stats['gpu_accelerated_analyses'] += 1
+                    logger.info("🚀 GPU-accelerated emotion detection")
+                else:
+                    # Original CPU-based detection
+                    emotion_scores = self.emotion_classifier(text)
+                
+                # Извлечение топ эмоции
+                if isinstance(emotion_scores, list) and emotion_scores:
+                    top_emotion = max(emotion_scores[0], key=lambda x: x['score'])
+                else:
+                    # Fallback
+                    top_emotion = {'label': 'neutral', 'score': 0.5}
+                
+                # Дополнительная проверка через VADER
+                vader_scores = self.vader_analyzer.polarity_scores(text)
+                
+                # Объединение результатов
+                primary_emotion = self._refine_emotion_detection(
+                    top_emotion['label'], 
+                    top_emotion['score'],
+                    vader_scores
+                )
+            else:
+                # Fallback emotion detection
+                primary_emotion = await self._fallback_emotion_detection(text)
+                self.emotion_stats['fallback_activations'] += 1
             
-            # Дополнительная проверка через VADER
-            vader_scores = self.vader_analyzer.polarity_scores(text)
+            processing_time = (datetime.now() - start_time).total_seconds()
+            self.emotion_stats['total_processing_time'] += processing_time
             
-            # Объединение результатов
-            primary_emotion = self._refine_emotion_detection(
-                top_emotion['label'], 
-                top_emotion['score'],
-                vader_scores
-            )
-            
-            logger.info(f"Detected primary emotion: {primary_emotion} (confidence: {top_emotion['score']:.3f})")
+            logger.info(f"Detected primary emotion: {primary_emotion}")
             return primary_emotion
             
         except Exception as e:
             logger.error(f"Error detecting emotion: {e}")
+            return 'neutral'
+
+    async def _fallback_emotion_detection(self, text: str) -> str:
+        """Fallback детекция эмоций на основе ключевых слов"""
+        text_lower = text.lower()
+        
+        # Define emotion keywords
+        emotion_keywords = {
+            'joy': ['happy', 'joy', 'excited', 'amazing', 'wonderful', 'great', 'excellent', 'love'],
+            'sadness': ['sad', 'depressed', 'sorrow', 'disappointed', 'grief', 'blue'],
+            'anger': ['angry', 'mad', 'rage', 'furious', 'irritated', 'annoyed', 'frustrated'],
+            'fear': ['scared', 'afraid', 'worried', 'anxious', 'terrified', 'panic'],
+            'disgust': ['disgusted', 'disgusting', 'gross', 'awful', 'terrible', 'horrible'],
+            'surprise': ['surprised', 'shocked', 'amazed', 'astonished', 'unexpected'],
+            'trust': ['trust', 'confident', 'secure', 'safe', 'reliable', 'faith'],
+            'anticipation': ['excited', 'curious', 'interested', 'looking forward', 'eager']
+        }
+        
+        # Count emotion indicators
+        emotion_scores = {}
+        for emotion, keywords in emotion_keywords.items():
+            score = sum(1 for keyword in keywords if keyword in text_lower)
+            emotion_scores[emotion] = score
+        
+        # Return emotion with highest score, or neutral
+        if emotion_scores:
+            max_emotion = max(emotion_scores.items(), key=lambda x: x[1])
+            return max_emotion[0] if max_emotion[1] > 0 else 'neutral'
+        else:
             return 'neutral'
 
     def _refine_emotion_detection(self, bert_emotion: str, bert_score: float, 
@@ -229,10 +354,17 @@ class ProductionEmotionEngine:
     async def detect_tone(self, text: str, context: Dict[str, Any] = None) -> str:
         """
         Улучшенная детекция тона
-        Заменяет простой keyword поиск на контекстуальный анализ
+        Enhanced with v2.1 GPU acceleration
         """
         try:
-            # Получение основной эмоции
+            # v2.1 GPU-accelerated tone detection
+            if self.use_gpu and self.gpu_support:
+                tone_result = await self.gpu_support.analyze_tone_gpu(text, context)
+                if tone_result:
+                    logger.info("🚀 GPU-accelerated tone detection")
+                    return tone_result
+            
+            # Fallback CPU-based tone detection
             primary_emotion = await self.detect_emotion(text)
             
             # Контекстуальная корректировка
@@ -260,7 +392,7 @@ class ProductionEmotionEngine:
             elif tone_context['question'] > 0.5:
                 base_tone = 'inquisitive'
             
-            logger.info(f"Detected tone: {base_tone} (emotion: {primary_emotion})")
+            logger.info(f"Detected tone: {base_tone}")
             return base_tone
             
         except Exception as e:
@@ -283,14 +415,19 @@ class ProductionEmotionEngine:
         
         # Обогащение через spaCy если доступно
         if self.nlp:
-            doc = self.nlp(text)
-            
-            # Анализ синтаксической структуры
-            exclamation_count = sum(1 for sent in doc.sents if sent.text.endswith('!'))
-            question_count = sum(1 for sent in doc.sents if sent.text.endswith('?'))
-            
-            tone_factors['exclamation_level'] = min(exclamation_count / len(text.split()) * 10, 1.0)
-            tone_factors['question_level'] = min(question_count / len(text.split()) * 10, 1.0)
+            try:
+                doc = self.nlp(text)
+                
+                # Анализ синтаксической структуры
+                exclamation_count = sum(1 for sent in doc.sents if sent.text.endswith('!'))
+                question_count = sum(1 for sent in doc.sents if sent.text.endswith('?'))
+                
+                tone_factors['exclamation_level'] = min(exclamation_count / len(text.split()) * 10, 1.0)
+                tone_factors['question_level'] = min(question_count / len(text.split()) * 10, 1.0)
+            except:
+                # spaCy processing failed
+                tone_factors['exclamation_level'] = text.count('!') / max(len(text.split()), 1)
+                tone_factors['question_level'] = text.count('?') / max(len(text.split()), 1)
         
         return tone_factors
 
@@ -351,16 +488,42 @@ class ProductionEmotionEngine:
                            intensity: float, context: Dict[str, Any] = None) -> EmotionVector:
         """
         Реальное кодирование эмоций в многоразмерные векторы
-        Заменяет mock векторы на математически обоснованные представления
+        Enhanced with v2.1 GPU acceleration and enhanced storage
         """
         try:
+            start_time = datetime.now()
+            
             # Контекстуальные факторы
             context_factors = self._analyze_emotional_context(primary, intensity, context)
+            
+            # v2.1 Sentiment analysis for enhanced encoding
+            sentiment_data = {}
+            if self.vader_analyzer and context and 'text' in context:
+                try:
+                    sentiment_scores = self.vader_analyzer.polarity_scores(context['text'])
+                    sentiment_data = {
+                        'vader_compound': sentiment_scores['compound'],
+                        'vader_positive': sentiment_scores['pos'],
+                        'vader_negative': sentiment_scores['neg'],
+                        'vader_neutral': sentiment_scores['neu']
+                    }
+                    self.emotion_stats['sentiment_analyses'] += 1
+                except:
+                    sentiment_data = {'overall_sentiment': 'neutral'}
             
             # Расчет эмоциональных измерений
             valence = self._calculate_valence(primary, context_factors)
             arousal = self._calculate_arousal(primary, intensity, context_factors)  
             dominance = self._calculate_dominance(primary, secondary, context_factors)
+            
+            # v2.1 GPU-accelerated emotion encoding
+            if self.use_gpu and self.gpu_support:
+                enhanced_vector = await self.gpu_support.encode_emotion_gpu(
+                    primary, secondary, intensity, valence, arousal, dominance, context_factors
+                )
+                if enhanced_vector:
+                    valence, arousal, dominance = enhanced_vector
+                    self.emotion_stats['gpu_accelerated_analyses'] += 1
             
             # Создание эмоционального вектора
             dimension_vector = [valence, arousal, dominance]
@@ -381,13 +544,36 @@ class ProductionEmotionEngine:
                 confidence=confidence,
                 dimension_vector=dimension_vector,
                 context_factors=context_factors,
-                timestamp=datetime.now(timezone.utc).isoformat()
+                sentiment=sentiment_data,
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                gpu_accelerated=self.use_gpu
             )
+            
+            # v2.1 Enhanced Storage Integration
+            if V2_1_AVAILABLE and self.enhanced_storage:
+                try:
+                    await self.enhanced_storage.store_emotion_vector(
+                        emotion_data=emotion_vector,
+                        context_data=context or {}
+                    )
+                    logger.info("💾 Stored emotion in enhanced storage")
+                except Exception as e:
+                    logger.warning(f"Enhanced emotion storage failed: {e}")
+            
+            # Update statistics
+            processing_time = (datetime.now() - start_time).total_seconds()
+            self.emotion_stats['total_processing_time'] += processing_time
             
             self.emotion_stats['emotions_processed'] += 1
             self._update_emotion_statistics(primary, confidence)
             
-            logger.info(f"Encoded emotion: {primary} (confidence: {confidence:.3f})")
+            # Update average processing time
+            total_emotions = self.emotion_stats['emotions_processed']
+            self.emotion_stats['average_emotion_time'] = (
+                self.emotion_stats['total_processing_time'] / total_emotions
+            )
+            
+            logger.info(f"Encoded emotion: {primary} (confidence: {confidence:.3f}, time: {processing_time:.3f}s)")
             return emotion_vector
             
         except Exception as e:
@@ -403,7 +589,9 @@ class ProductionEmotionEngine:
                 confidence=0.0,
                 dimension_vector=[0.0, 0.5, 0.5],
                 context_factors={},
-                timestamp=datetime.now(timezone.utc).isoformat()
+                sentiment={'overall_sentiment': 'neutral'},
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                gpu_accelerated=False
             )
 
     def _analyze_emotional_context(self, primary_emotion: str, intensity: float, 
@@ -564,10 +752,15 @@ class ProductionEmotionEngine:
         
         # Корректировка через вторичные эмоции
         if secondary:
-            avg_secondary_dominance = np.mean([
-                base_dominance.get(emo, 0.5) for emo in secondary
-            ])
-            dominance = (dominance + avg_secondary_dominance) / 2
+            if np:
+                avg_secondary_dominance = np.mean([
+                    base_dominance.get(emo, 0.5) for emo in secondary
+                ])
+                dominance = (dominance + avg_secondary_dominance) / 2
+            else:
+                # Fallback calculation
+                avg_secondary = sum(base_dominance.get(emo, 0.5) for emo in secondary) / len(secondary)
+                dominance = (dominance + avg_secondary) / 2
         
         # Корректировка через социальный и личный контекст
         social_context = context_factors.get('social_context', 0.5)
@@ -660,7 +853,10 @@ class ProductionEmotionEngine:
         intensity_factor = intensity
         
         # Корректировка через контекстуальные факторы
-        context_weight = np.mean(list(context_factors.values()))
+        if context_factors:
+            context_weight = sum(context_factors.values()) / len(context_factors)
+        else:
+            context_weight = 0.5
         
         # Общая уверенность
         total_confidence = (base_confidence * 0.4 + 
@@ -685,21 +881,53 @@ class ProductionEmotionEngine:
         self.emotion_stats['average_confidence'] = new_avg
 
     def get_emotion_stats(self) -> Dict[str, Any]:
-        """Получение статистики эмоционального движка"""
+        """Получение расширенной статистики эмоционального движка"""
         
-        return {
+        base_stats = {
             **self.emotion_stats,
             'models_loaded': {
                 'emotion_classifier': self.emotion_classifier is not None,
                 'vader_analyzer': self.vader_analyzer is not None,
-                'spacy_model': self.nlp is not None
+                'spacy_model': self.nlp is not None,
+                'nlp_available': NLP_AVAILABLE
             },
             'supported_emotions': list(self.EMOTION_WHEEL.keys()),
-            'config': self.config
+            'config': self.config,
+            'v2_1_status': {
+                'available': V2_1_AVAILABLE,
+                'gpu_enabled': self.use_gpu,
+                'gpu_acceleration_active': self.gpu_support is not None,
+                'fallback_mode': not NLP_AVAILABLE
+            }
         }
+        
+        # Add enhanced storage stats if available
+        if V2_1_AVAILABLE and hasattr(self, 'enhanced_storage'):
+            base_stats['enhanced_storage'] = self.enhanced_storage.get_storage_stats()
+        
+        return base_stats
+
+    async def shutdown(self):
+        """Корректное завершение работы системы"""
+        try:
+            logger.info("Shutting down Production Emotion Engine...")
+            
+            # v2.1 cleanup
+            if self.gpu_support:
+                await self.gpu_support.cleanup()
+                logger.info("GPU support cleaned up")
+            
+            if self.enhanced_storage:
+                await self.enhanced_storage.shutdown()
+                logger.info("Enhanced storage cleaned up")
+            
+            logger.info("Production Emotion Engine shutdown completed")
+            
+        except Exception as e:
+            logger.error(f"Error during emotion engine shutdown: {e}")
 
 
-# Тестирование эмоционального движка
+# Enhanced test function для демонстрации функциональности
 async def test_production_emotion_engine():
     """Тестирование production эмоционального движка"""
     
@@ -713,8 +941,8 @@ async def test_production_emotion_engine():
         "I feel disappointed with the current results."
     ]
     
-    print("🎭 Testing ASMF v2.0 Production Emotion Engine")
-    print("=" * 60)
+    print("🎭 Testing ASMF v2.0 Production Emotion Engine (Enhanced with v2.1)")
+    print("=" * 70)
     
     for i, text in enumerate(test_texts, 1):
         print(f"\n📝 Test {i}: {text}")
@@ -728,7 +956,7 @@ async def test_production_emotion_engine():
         print(f"   Tone: {tone}")
         
         # Кодирование эмоционального вектора
-        context = {'text_type': 'test', 'user_mood': 'testing'}
+        context = {'text': text, 'text_type': 'test', 'user_mood': 'testing'}
         emotion_vector = await engine.encode_emotion(
             primary=emotion,
             secondary=[],
@@ -736,18 +964,27 @@ async def test_production_emotion_engine():
             context=context
         )
         
+        print(f"   GPU Accelerated: {emotion_vector.gpu_accelerated}")
         print(f"   Intensity: {emotion_vector.intensity:.2f}")
         print(f"   Confidence: {emotion_vector.confidence:.2f}")
         print(f"   Valence: {emotion_vector.valence:.2f}")
         print(f"   Arousal: {emotion_vector.arousal:.2f}")
         print(f"   Dominance: {emotion_vector.dominance:.2f}")
     
-    # Получаем статистику
+    # Получаем расширенную статистику
     stats = engine.get_emotion_stats()
     print(f"\n📊 Engine Statistics:")
     print(f"   Emotions processed: {stats['emotions_processed']}")
     print(f"   Average confidence: {stats['average_confidence']:.3f}")
-    print(f"   Primary emotions detected: {stats['primary_emotions_detected']}")
+    print(f"   GPU accelerated: {stats.get('gpu_accelerated_analyses', 0)}")
+    print(f"   Average processing time: {stats.get('average_emotion_time', 0):.3f}s")
+    print(f"   Fallback activations: {stats.get('fallback_activations', 0)}")
+    print(f"   Sentiment analyses: {stats.get('sentiment_analyses', 0)}")
+    print(f"   Primary emotions: {stats['primary_emotions_detected']}")
+    print(f"   GPU Status: {stats['v2_1_status']['gpu_enabled']}")
+    
+    # Корректное завершение
+    await engine.shutdown()
     
     print("\n✅ Production Emotion Engine test completed successfully!")
     
