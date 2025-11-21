@@ -15,23 +15,47 @@ from typing import Dict, List, Any, Optional
 from dataclasses import asdict
 import yaml
 
-# Import production components
-from .semantic_core.production_memory import (
-    ProductionSemanticMemory, SemanticContext, MeaningGraph
-)
-from .emotional_engine.production_emotion_engine import (
-    ProductionEmotionEngine, EmotionVector, EmotionalContext
-)
-from .recovery_system.advanced_recovery import (
-    AdvancedRecoverySystem, SessionData, SessionMetadata
-)
+# Import production components (flat structure)
+try:
+    from production_memory import (
+        ProductionSemanticMemory, SemanticContext, MeaningGraph
+    )
+    from production_emotion_engine import (
+        ProductionEmotionEngine, EmotionVector, EmotionalContext
+    )
+    from advanced_recovery import (
+        AdvancedRecoverySystem, SessionData, SessionMetadata
+    )
+except ImportError as e:
+    # Fallback for demo mode
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Import fallback: {e}")
+    # Mock classes for demo
+    class SemanticContext: pass
+    class MeaningGraph: pass
+    class EmotionVector: pass
+    class EmotionalContext: pass
+    class SessionMetadata: pass
+    class SessionData: pass
+
+# Import v2.1 components
+try:
+    from database_optimization import EnhancedStorageSystem
+    from gpu_support import GPUSupportModule
+    from llm_wrapper_v2_1 import UniversalLLMWrapper
+    V2_1_AVAILABLE = True
+except ImportError:
+    V2_1_AVAILABLE = False
+    EnhancedStorageSystem = None
+    GPUSupportModule = None
+    UniversalLLMWrapper = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class ASMFV2BigBook:
     """
-    ASMF v2.0 Production BigBook System
+    ASMF v2.0 Production BigBook System (Enhanced with v2.1)
     Интегрирует все компоненты в единое решение для полноценной работы
     """
     
@@ -58,6 +82,8 @@ class ASMFV2BigBook:
         }
         
         logger.info("ASMF v2.0 BigBook Production System initialized successfully")
+        if V2_1_AVAILABLE:
+            logger.info("✨ v2.1 enhancements loaded successfully")
 
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Загрузка конфигурации системы"""
@@ -87,6 +113,14 @@ class ASMFV2BigBook:
                     'compression': 'lz4',
                     'enable_cache': True,
                     'cache_size': 100
+                },
+                # v2.1 configuration
+                'v2_1': {
+                    'enable_gpu_acceleration': False,
+                    'enable_llm_integration': True,
+                    'enable_enhanced_storage': True,
+                    'llm_provider': 'openai',
+                    'gpu_device': 'cuda:0' if V2_1_AVAILABLE else None
                 }
             }
 
@@ -101,6 +135,38 @@ class ASMFV2BigBook:
             
             # Initialize Recovery System
             self.recovery_system = AdvancedRecoverySystem()
+            
+            # v2.1 Enhanced Components
+            if V2_1_AVAILABLE:
+                # GPU Support
+                gpu_config = self.config.get('v2_1', {})
+                if gpu_config.get('enable_gpu_acceleration', False):
+                    self.gpu_support = GPUSupportModule(
+                        device=gpu_config.get('gpu_device', 'cuda:0')
+                    )
+                    logger.info("🚀 GPU acceleration enabled")
+                else:
+                    self.gpu_support = None
+                    logger.info("💻 CPU mode (GPU disabled)")
+                
+                # Enhanced Storage
+                storage_config = self.config.get('v2_1', {})
+                if storage_config.get('enable_enhanced_storage', True):
+                    self.enhanced_storage = EnhancedStorageSystem(
+                        enable_gpu=self.gpu_support is not None
+                    )
+                    logger.info("💾 Enhanced BLOB storage with FAISS enabled")
+                else:
+                    self.enhanced_storage = None
+                
+                # LLM Integration
+                llm_config = self.config.get('v2_1', {})
+                if llm_config.get('enable_llm_integration', True):
+                    provider = llm_config.get('llm_provider', 'openai')
+                    self.llm_wrapper = UniversalLLMWrapper(provider=provider)
+                    logger.info(f"🧠 LLM integration enabled ({provider})")
+                else:
+                    self.llm_wrapper = None
             
             logger.info("All components initialized successfully")
             
@@ -146,7 +212,35 @@ class ASMFV2BigBook:
                 context={'user_id': user_id, 'project': project}
             )
             
-            # 3. Создание интегрированной сессии
+            # 3. v2.1 GPU-Accelerated Processing
+            if V2_1_AVAILABLE and self.gpu_support:
+                logger.info("🚀 Using GPU acceleration...")
+                # Enhance embeddings with GPU
+                enhanced_context = await self.gpu_support.enhance_semantic_processing(
+                    semantic_context, emotion_vector
+                )
+                if enhanced_context:
+                    semantic_context = enhanced_context
+            
+            # 4. v2.1 LLM Enhancement
+            if V2_1_AVAILABLE and self.llm_wrapper:
+                logger.info("🧠 Using LLM enhancement...")
+                # Get LLM insights for the session
+                try:
+                    llm_analysis = await self.llm_wrapper.analyze_text(
+                        text=input_text,
+                        context={'user_id': user_id, 'project': project},
+                        analysis_type=['sentiment', 'topics', 'insights']
+                    )
+                    
+                    # Merge LLM insights with semantic context
+                    if hasattr(llm_analysis, 'topics') and llm_analysis.topics:
+                        semantic_context.keywords.extend(llm_analysis.topics[:3])
+                    
+                except Exception as llm_error:
+                    logger.warning(f"LLM enhancement failed: {llm_error}")
+            
+            # 5. Создание интегрированной сессии
             logger.info("🔄 Creating integrated session...")
             session_metadata = SessionMetadata(
                 session_id=session_id,
@@ -198,20 +292,31 @@ class ASMFV2BigBook:
                 }
             )
             
-            # 4. Сохранение сессии
+            # 6. Enhanced v2.1 Storage
+            if V2_1_AVAILABLE and self.enhanced_storage:
+                logger.info("💾 Saving to enhanced storage...")
+                storage_result = await self.enhanced_storage.store_session(
+                    session_id=session_id,
+                    user_id=user_id,
+                    content=full_session,
+                    metadata={'project': project, 'emotion': primary_emotion}
+                )
+                logger.info(f"Enhanced storage: {storage_result.get('status', 'unknown')}")
+            
+            # 7. Сохранение сессии (legacy)
             logger.info("💾 Saving session...")
             compressed_data = await self.recovery_system.export_session(full_session)
             
-            # 5. Обновление локального состояния
+            # 8. Обновление локального состояния
             self.active_sessions[session_id] = full_session
             if user_id not in self.user_sessions:
                 self.user_sessions[user_id] = []
             self.user_sessions[user_id].append(session_id)
             
-            # 6. Обновление статистики
+            # 9. Обновление статистики
             await self._update_session_statistics(semantic_context, emotion_vector)
             
-            # 7. Формирование ответа
+            # 10. Формирование ответа
             response = {
                 'session_id': session_id,
                 'status': 'success',
@@ -234,7 +339,13 @@ class ASMFV2BigBook:
                     'session_metadata': asdict(session_metadata)
                 },
                 'compressed_size': len(compressed_data),
-                'processing_timestamp': datetime.now(timezone.utc).isoformat()
+                'processing_timestamp': datetime.now(timezone.utc).isoformat(),
+                'version': '2.0',
+                'v2_1_features': {
+                    'gpu_accelerated': self.gpu_support is not None,
+                    'llm_enhanced': self.llm_wrapper is not None,
+                    'enhanced_storage': self.enhanced_storage is not None
+                }
             }
             
             logger.info(f"Session {session_id} processed successfully")
@@ -292,6 +403,10 @@ class ASMFV2BigBook:
                 else:
                     greeting += f" We've shared {sessions_count} sessions together - that's amazing!"
                 
+                # v2.1 Enhancement: GPU status
+                if V2_1_AVAILABLE and self.gpu_support:
+                    greeting += " 🚀 Enhanced with GPU acceleration!"
+                
                 return greeting
             else:
                 # Сессия не найдена в памяти, загружаем из системы восстановления
@@ -320,6 +435,18 @@ class ASMFV2BigBook:
             # Проверяем локальный кэш
             if session_id in self.active_sessions:
                 return self.active_sessions[session_id]
+            
+            # v2.1 Enhanced Storage Recovery
+            if V2_1_AVAILABLE and self.enhanced_storage:
+                try:
+                    restored_session = await self.enhanced_storage.retrieve_session(
+                        session_id=session_id, user_id=user_id
+                    )
+                    if restored_session:
+                        logger.info(f"Session {session_id} restored from enhanced storage")
+                        return restored_session
+                except Exception as e:
+                    logger.warning(f"Enhanced storage recovery failed: {e}")
             
             # TODO: В будущем можно загрузить из базы данных
             logger.info(f"Session {session_id} not found in local cache")
@@ -362,6 +489,29 @@ class ASMFV2BigBook:
                         all_emotions.append(emotion.primary_emotion)
                         all_sentiments.append(emotion.sentiment.get('overall_sentiment', 'neutral'))
             
+            # v2.1 LLM Enhanced Insights
+            if V2_1_AVAILABLE and self.llm_wrapper and all_concepts:
+                try:
+                    # Get deep insights using LLM
+                    concepts_text = " ".join(all_concepts[:20])  # Limit for API efficiency
+                    llm_insights = await self.llm_wrapper.analyze_text(
+                        text=concepts_text,
+                        context={'user_id': user_id, 'total_sessions': total_sessions},
+                        analysis_type=['personality', 'interests', 'recommendations']
+                    )
+                    
+                    # Merge LLM insights
+                    if hasattr(llm_insights, 'personality_traits'):
+                        llm_personality = getattr(llm_insights, 'personality_traits', {})
+                    else:
+                        llm_personality = {}
+                        
+                except Exception as llm_error:
+                    logger.warning(f"LLM insights failed: {llm_error}")
+                    llm_personality = {}
+            else:
+                llm_personality = {}
+            
             # Анализируем паттерны
             concept_frequency = {}
             emotion_frequency = {}
@@ -389,10 +539,13 @@ class ASMFV2BigBook:
                     'sentiment_distribution': sentiment_distribution,
                     'average_concepts_per_session': len(all_concepts) / total_sessions if total_sessions > 0 else 0,
                     'emotional_stability': self._calculate_emotional_stability(all_emotions),
-                    'topic_diversity': len(set(all_concepts)) / len(all_concepts) if all_concepts else 0
+                    'topic_diversity': len(set(all_concepts)) / len(all_concepts) if all_concepts else 0,
+                    'llm_enhanced_personality': llm_personality
                 },
                 'recommendations': self._generate_recommendations(all_concepts, all_emotions, all_sentiments),
-                'last_updated': datetime.now(timezone.utc).isoformat()
+                'last_updated': datetime.now(timezone.utc).isoformat(),
+                'version': '2.0',
+                'v2_1_enhanced': bool(llm_personality)
             }
             
             return insights
@@ -443,6 +596,10 @@ class ASMFV2BigBook:
         if len(concepts) > 50:
             recommendations.append("You're highly engaged with content - perfect for deep, complex topics")
         
+        # v2.1 GPU/Performance recommendations
+        if V2_1_AVAILABLE and self.gpu_support:
+            recommendations.append("🎮 GPU acceleration is enabled for optimal performance")
+        
         if not recommendations:
             recommendations.append("Let's continue exploring topics that interest you")
         
@@ -480,6 +637,16 @@ class ASMFV2BigBook:
         emotion_stats = self.emotion_engine.get_emotion_stats()
         recovery_stats = self.recovery_system.get_recovery_stats()
         
+        # v2.1 enhanced stats
+        enhanced_stats = {}
+        if V2_1_AVAILABLE:
+            if hasattr(self, 'enhanced_storage'):
+                enhanced_stats['storage'] = self.enhanced_storage.get_storage_stats()
+            if hasattr(self, 'gpu_support'):
+                enhanced_stats['gpu'] = self.gpu_support.get_gpu_stats()
+            if hasattr(self, 'llm_wrapper'):
+                enhanced_stats['llm'] = self.llm_wrapper.get_provider_stats()
+        
         return {
             'system_overview': {
                 'version': '2.0',
@@ -492,13 +659,20 @@ class ASMFV2BigBook:
             'component_stats': {
                 'semantic_memory': semantic_stats,
                 'emotion_engine': emotion_stats,
-                'recovery_system': recovery_stats
+                'recovery_system': recovery_stats,
+                **enhanced_stats  # v2.1 components
             },
             'performance_metrics': {
                 'average_session_quality': self.system_stats['average_session_quality'],
                 'total_concepts_per_session': self.system_stats['total_concepts_processed'] / max(1, self.system_stats['total_sessions_processed']),
                 'emotion_detection_accuracy': emotion_stats.get('average_confidence', 0.0),
                 'compression_efficiency': recovery_stats.get('total_compression_ratio', 0.0)
+            },
+            'v2_1_status': {
+                'available': V2_1_AVAILABLE,
+                'gpu_enabled': hasattr(self, 'gpu_support') and self.gpu_support is not None,
+                'enhanced_storage': hasattr(self, 'enhanced_storage') and self.enhanced_storage is not None,
+                'llm_integration': hasattr(self, 'llm_wrapper') and self.llm_wrapper is not None
             }
         }
 
@@ -506,6 +680,15 @@ class ASMFV2BigBook:
         """Корректное завершение работы системы"""
         try:
             logger.info("Shutting down ASMF v2.0 BigBook system...")
+            
+            # v2.1 cleanup
+            if V2_1_AVAILABLE:
+                if hasattr(self, 'enhanced_storage'):
+                    await self.enhanced_storage.shutdown()
+                if hasattr(self, 'gpu_support'):
+                    await self.gpu_support.cleanup()
+                if hasattr(self, 'llm_wrapper'):
+                    await self.llm_wrapper.shutdown()
             
             # Сохраняем все активные сессии
             if self.config.get('bigbook', {}).get('auto_save', True):
@@ -573,10 +756,12 @@ async def demo_asmf_v2_bigbook():
         if result['status'] == 'success':
             semantic = result['processing_results']['semantic']
             emotional = result['processing_results']['emotional']
+            v2_1_features = result.get('v2_1_features', {})
             
             print(f"Concepts: {semantic['concepts_extracted']}")
             print(f"Sentiment: {semantic['sentiment']}")
             print(f"Emotion: {emotional['primary_emotion']} ({emotional['tone']})")
+            print(f"v2.1: GPU={v2_1_features.get('gpu_accelerated', False)}, LLM={v2_1_features.get('llm_enhanced', False)}")
     
     # Тестируем приветствие пользователя
     print(f"\n👋 Testing user greetings...")
@@ -597,11 +782,13 @@ async def demo_asmf_v2_bigbook():
     print(f"  Sessions: {insights_001.get('total_sessions', 0)}")
     print(f"  Top concepts: {insights_001.get('analysis', {}).get('top_concepts', [])}")
     print(f"  Dominant emotions: {insights_001.get('analysis', {}).get('dominant_emotions', [])}")
+    print(f"  v2.1 Enhanced: {insights_001.get('v2_1_enhanced', False)}")
     
     print(f"User 002 insights:")
     print(f"  Sessions: {insights_002.get('total_sessions', 0)}")
     print(f"  Top concepts: {insights_002.get('analysis', {}).get('top_concepts', [])}")
     print(f"  Dominant emotions: {insights_002.get('analysis', {}).get('dominant_emotions', [])}")
+    print(f"  v2.1 Enhanced: {insights_002.get('v2_1_enhanced', False)}")
     
     # Получаем общую статистику системы
     print(f"\n📊 System Statistics:")
@@ -611,6 +798,13 @@ async def demo_asmf_v2_bigbook():
     print(f"  Version: {stats['system_overview']['version']}")
     print(f"  Active Sessions: {stats['system_overview']['active_sessions']}")
     print(f"  Registered Users: {stats['system_overview']['registered_users']}")
+    
+    print(f"v2.1 Status:")
+    v2_1_status = stats.get('v2_1_status', {})
+    print(f"  Available: {v2_1_status.get('available', False)}")
+    print(f"  GPU Enabled: {v2_1_status.get('gpu_enabled', False)}")
+    print(f"  Enhanced Storage: {v2_1_status.get('enhanced_storage', False)}")
+    print(f"  LLM Integration: {v2_1_status.get('llm_integration', False)}")
     
     print(f"Processing Stats:")
     print(f"  Total Sessions: {stats['processing_stats']['total_sessions_processed']}")
@@ -632,6 +826,8 @@ async def demo_asmf_v2_bigbook():
     print("   ✅ Complete session recovery with database storage")
     print("   ✅ Integrated user management and insights")
     print("   ✅ Production-grade error handling and logging")
+    if V2_1_AVAILABLE:
+        print("   🚀 v2.1 GPU acceleration and LLM integration enabled")
 
 
 if __name__ == "__main__":
