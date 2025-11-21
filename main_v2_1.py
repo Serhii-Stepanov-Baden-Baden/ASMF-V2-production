@@ -520,7 +520,7 @@ async def main():
         
         # Show final stats
         stats = await asmf.get_performance_stats()
-        logger.info(f"\n🏁 Final Statistics: {stats['memories_processed()} memories processed")
+        logger.info(f"\n🏁 Final Statistics: {stats['memories_processed']} memories processed")
         
     except Exception as e:
         logger.error(f"❌ Fatal error: {e}")
