@@ -102,8 +102,8 @@ class SessionMetadata:
     emotional_size: int
     total_size: int
     compression_ratio: float
+    status: str = "active"
     version: str = "2.1"  # Обновлено до v2.1
-    status: str
     # v2.1 расширения
     gpu_accelerated: bool = False
     enhanced_storage: bool = False
